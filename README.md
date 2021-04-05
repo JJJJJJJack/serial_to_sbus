@@ -3,4 +3,9 @@ Ros node that receives controller command and sends it to the ttyUSB device thro
 
 ## Requirement
 The ros node requires the serial library, install it by
-```sudo apt-get install serial```
+```
+git clone https://github.com/wjwwood/serial.git
+cd serial
+make
+sudo make install
+```
