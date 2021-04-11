@@ -15,7 +15,8 @@
 #define CHANNEL_PITCH 1
 #define CHANNEL_YAW 3
 #define CHANNEL_THROTTLE 2
-#define CHANNEL_FLIGHT_MODE 7
+#define CHANNEL_FLIGHT_MODE 6
+#define CHANNEL_ARM 7
 
 using namespace std;
 
@@ -29,6 +30,14 @@ sensor_msgs::Joy joy_control;
 void joystick_command_callback(const sensor_msgs::Joy& message){
   joy_control_ready = true;
   joy_control = message;
+}
+
+float saturate_float(float input, float min, float max){
+  if(input > max)
+    input = max;
+  if(input < min)
+    input = min;
+  return input;
 }
 
 void form_channel_data(uint8_t* data, uint16_t* channel){
@@ -114,11 +123,12 @@ int main(int argc, char **argv)
     double totaltime = tvend.tv_sec - tvstart.tv_sec + 1e-6 * (tvend.tv_usec - tvstart.tv_usec);
     
     if(joy_control_ready == true){
-      channel[CHANNEL_ROLL]     = 1500 + 500*joy_control.axes[0];
-      channel[CHANNEL_PITCH]    = 1500 + 500*joy_control.axes[1];
-      channel[CHANNEL_YAW]      = 1500 + 500*joy_control.axes[2];
-      channel[CHANNEL_THROTTLE] = 1000 + 1000*joy_control.axes[3];
-      channel[CHANNEL_FLIGHT_MODE] = 1000 + 1000*joy_control.buttons[1];
+      channel[CHANNEL_ROLL]     = saturate_float(1500 + 500*joy_control.axes[0],1000,2000);
+      channel[CHANNEL_PITCH]    = saturate_float(1500 + 500*joy_control.axes[1],1000,2000);
+      channel[CHANNEL_YAW]      = saturate_float(1500 + 500*joy_control.axes[2],1000,2000);
+      channel[CHANNEL_THROTTLE] = saturate_float(1000 + 1000*joy_control.axes[3],1000,2000);
+      channel[CHANNEL_ARM]      = saturate_float(1000 + 1000*joy_control.buttons[0],1000,2000);
+      channel[CHANNEL_FLIGHT_MODE] = saturate_float(1000 + 1000*joy_control.buttons[1],1000,2000);
     }
     
     form_channel_data(data_to_send, channel);
