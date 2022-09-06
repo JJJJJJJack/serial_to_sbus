@@ -15,6 +15,7 @@
 #define CHANNEL_PITCH 1
 #define CHANNEL_YAW 3
 #define CHANNEL_THROTTLE 2
+#define CHANNEL_BOARD_PITCH_ALIGNMENT 4
 #define CHANNEL_FLIGHT_MODE 6
 #define CHANNEL_ARM 7
 
@@ -72,24 +73,24 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
 	
   ros::Rate loop_rate(100);
+  string USB_Dev;
+  ros::NodeHandle nh("~");
+  nh.param<std::string>("USB", USB_Dev, "/dev/ttyUSB0");
   
-  ros::Subscriber sub_joy_control  = n.subscribe("/joy_control", 1, joystick_command_callback);
-  //ros::Subscriber sub_quad_vel   = n.subscribe("velocity", 1, quad_vel_callback);
-  //ros::Subscriber sub_obstacle   = n.subscribe("/vicon/Block/Block", 1, obstacle_callback);
-  //ros::Subscriber sub_goal       = n.subscribe("goal", 1, goal_callback);
+  ros::Subscriber sub_joy_control  = n.subscribe("joy_control", 1, joystick_command_callback);
 
   serial::Serial my_serial;
   serial::Timeout timeout = serial::Timeout::simpleTimeout(1000);
-  my_serial.setPort("/dev/ttyUSB0");
+
+  my_serial.setPort(USB_Dev);
   my_serial.setBaudrate(115200);
   my_serial.setTimeout(timeout);
 
   try{
-    //serial::Serial my_serial("/dev/ttyUSB0", 115200, serial::Timeout::simpleTimeout(1000));
     my_serial.open();
   }
   catch(serial::IOException& e){
-    ROS_ERROR_STREAM("Unable to open Serial USB port.");
+    ROS_ERROR_STREAM("Unable to open Serial USB port: " << USB_Dev);
     return -1;
   }
   
@@ -129,6 +130,7 @@ int main(int argc, char **argv)
       channel[CHANNEL_THROTTLE] = saturate_float(1000 + 1000*joy_control.axes[3],1000,2000);
       channel[CHANNEL_ARM]      = saturate_float(1000 + 1000*joy_control.buttons[0],1000,2000);
       channel[CHANNEL_FLIGHT_MODE] = saturate_float(1000 + 1000*joy_control.buttons[1],1000,2000);
+      channel[CHANNEL_BOARD_PITCH_ALIGNMENT] = saturate_float(1500 + 500*joy_control.axes[4],1000,2000);
     }
     
     form_channel_data(data_to_send, channel);
