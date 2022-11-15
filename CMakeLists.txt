@@ -4,6 +4,7 @@ project(serial_to_sbus)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+set(serial_DIR /tmp/usr/local/include/serial)
 find_package(catkin REQUIRED
   roscpp
   rospy

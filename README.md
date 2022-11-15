@@ -4,10 +4,7 @@ Ros node that receives controller command and sends it to the ttyUSB device thro
 ## Requirement
 The ros node requires the serial library, install it by
 ```
-git clone https://github.com/wjwwood/serial.git
-cd serial
-make
-sudo make install
+sudo apt-get install ros-<rosversion>-serial
 ```
 
 ## Configuring joystick
