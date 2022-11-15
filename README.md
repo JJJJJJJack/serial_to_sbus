@@ -9,3 +9,10 @@ cd serial
 make
 sudo make install
 ```
+
+## Configuring joystick
+Use *jstest-gtk* to configure joystick mapping. Use *jscal-store* to save the configuration.
+```
+sudo apt-get install jstest-gtk
+sudo jscal-store /dev/input/js<your-joystick-number>
+```
