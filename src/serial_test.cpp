@@ -16,7 +16,6 @@
 #define CHANNEL_YAW 3
 #define CHANNEL_THROTTLE 2
 #define CHANNEL_BOARD_PITCH_ALIGNMENT 4
-#define CHANNEL_FLIP_SWITCH 5
 #define CHANNEL_FLIGHT_MODE 6
 #define CHANNEL_ARM 7
 
@@ -78,7 +77,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh("~");
   nh.param<std::string>("USB", USB_Dev, "/dev/ttyUSB0");
   
-  ros::Subscriber sub_joy_control  = n.subscribe("joy_control", 1, joystick_command_callback);
+  ros::Subscriber sub_joy_control  = n.subscribe("joy", 1, joystick_command_callback);
 
   serial::Serial my_serial;
   serial::Timeout timeout = serial::Timeout::simpleTimeout(1000);
@@ -119,20 +118,24 @@ int main(int argc, char **argv)
   channel[CHANNEL_YAW]      = 1500;  // Yaw
   channel[CHANNEL_THROTTLE] = 1000;  // Default throttle is all the way down
 
+  int channel_loop = 0;
   while (ros::ok())
   {
     gettimeofday(&tvend,NULL);
     double totaltime = tvend.tv_sec - tvstart.tv_sec + 1e-6 * (tvend.tv_usec - tvstart.tv_usec);
     
     if(joy_control_ready == true){
-      channel[CHANNEL_ROLL]     = saturate_float(1500 + 500*joy_control.axes[0],1000,2000);
+      /*channel[CHANNEL_ROLL]     = saturate_float(1500 + 500*joy_control.axes[0],1000,2000);
       channel[CHANNEL_PITCH]    = saturate_float(1500 + 500*joy_control.axes[1],1000,2000);
       channel[CHANNEL_YAW]      = saturate_float(1500 + 500*joy_control.axes[2],1000,2000);
       channel[CHANNEL_THROTTLE] = saturate_float(1000 + 1000*joy_control.axes[3],1000,2000);
       channel[CHANNEL_ARM]      = saturate_float(1000 + 1000*joy_control.buttons[0],1000,2000);
-      channel[CHANNEL_FLIGHT_MODE] = saturate_float(1500,1000,2000);
-      channel[CHANNEL_FLIP_SWITCH] = saturate_float(1000 + 1000*joy_control.buttons[1],1000,2000);
+      channel[CHANNEL_FLIGHT_MODE] = saturate_float(1000 + 1000*joy_control.buttons[1],1000,2000);
       channel[CHANNEL_BOARD_PITCH_ALIGNMENT] = saturate_float(1500 + 500*joy_control.axes[4],1000,2000);
+      */
+      channel_loop = (int)((int)totaltime % 16);
+      channel[channel_loop] = saturate_float(1000 + 1000*joy_control.axes[3],1000,2000);
+      cout<<channel_loop<<endl;
     }
     
     form_channel_data(data_to_send, channel);

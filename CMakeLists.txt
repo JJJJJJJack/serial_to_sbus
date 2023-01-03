@@ -110,7 +110,12 @@ include_directories(
 ## Declare a cpp executable
 add_executable(serial_to_sbus 
   src/serial_to_sbus.cpp
+  )
+
+add_executable(serial_test 
+  src/serial_test.cpp
 )
+
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -118,6 +123,10 @@ add_executable(serial_to_sbus
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(serial_to_sbus
+  ${catkin_LIBRARIES}
+  )
+
+target_link_libraries(serial_test
   ${catkin_LIBRARIES}
 )
 
