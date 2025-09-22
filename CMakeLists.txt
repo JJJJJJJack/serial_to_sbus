@@ -112,6 +112,10 @@ add_executable(serial_to_sbus
   src/serial_to_sbus.cpp
   )
 
+add_executable(sbus_to_serial 
+  src/sbus_to_serial.cpp
+  )
+
 add_executable(serial_test 
   src/serial_test.cpp
 )
@@ -126,6 +130,9 @@ target_link_libraries(serial_to_sbus
   ${catkin_LIBRARIES}
   )
 
+target_link_libraries(sbus_to_serial
+  ${catkin_LIBRARIES}
+  )
 target_link_libraries(serial_test
   ${catkin_LIBRARIES}
 )
