@@ -16,7 +16,7 @@
 #define CHANNEL_YAW 3
 #define CHANNEL_THROTTLE 2
 #define CHANNEL_BOARD_PITCH_ALIGNMENT 4
-#define CHANNEL_FLIP_SWITCH 5
+#define CHANNEL_FLIP_SWITCH 9
 #define CHANNEL_FLIGHT_MODE 6
 #define CHANNEL_ARM 7
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
       channel[CHANNEL_YAW]      = saturate_float(1500 + 500*joy_control.axes[2],1000,2000);
       channel[CHANNEL_THROTTLE] = saturate_float(1000 + 1000*joy_control.axes[3],1000,2000);
       channel[CHANNEL_ARM]      = saturate_float(1000 + 1000*joy_control.buttons[0],1000,2000);
-      channel[CHANNEL_FLIGHT_MODE] = saturate_float(1500,1000,2000);
+      channel[CHANNEL_FLIGHT_MODE] = saturate_float(2000,1000,2000);
       channel[CHANNEL_FLIP_SWITCH] = saturate_float(1000 + 1000*joy_control.buttons[1],1000,2000);
       channel[CHANNEL_BOARD_PITCH_ALIGNMENT] = saturate_float(1500 + 500*joy_control.axes[4],1000,2000);
     }
