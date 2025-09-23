@@ -10,8 +10,8 @@
 
 #include "sensor_msgs/Joy.h"
 
-#define CHANNEL_MAP_A_INV 0.625390694  // 1 / CHANNEL_MAP_A
-#define CHANNEL_MAP_B_INV 879.111706   // -CHANNEL_MAP_B / CHANNEL_MAP_A
+#define CHANNEL_MAP_LOW 353.0f  // LOW READ
+#define CHANNEL_MAP_HIGH 1695.0f   // HIGH READ
 
 #define CHANNEL_ROLL 0
 #define CHANNEL_PITCH 1
@@ -35,6 +35,10 @@ float saturate_float(float input, float min, float max){
 }
 
 bool parse_channel_data(uint8_t* data, uint16_t* channel){
+  // for(int i = 0; i < 35; i++){
+  //   printf("0x%X ", data[i]);
+  // }
+  // printf("\n\n");
   // Check start byte
   if(data[0] != 0x0F){
     return false;
@@ -60,15 +64,15 @@ bool parse_channel_data(uint8_t* data, uint16_t* channel){
   for(int i = 1; i < 33; i++){
     channel_parity = i % 2;
     channel_number = (i - 1) / 2;
-    if(channel_parity == 0){
+    if(channel_parity == 1){
       // lower byte
-      lower_byte = data[i];
-    }else{
+      lower_byte = data[i+1];
       // higher byte
       channel_value = (((uint16_t)data[i]) << 8) | lower_byte;
       // Convert from SBUS format back to channel value
-      float channel_float = CHANNEL_MAP_A_INV * channel_value + CHANNEL_MAP_B_INV;
+      float channel_float = (channel_value - CHANNEL_MAP_LOW) / (CHANNEL_MAP_HIGH - CHANNEL_MAP_LOW) * 1000 + 1000;
       channel[channel_number] = (uint16_t)round(channel_float);
+      // printf("Channel No.%d, float: %.1f, value: %d  ", channel_number, channel_float, channel[channel_number]);
     }
   }
   
@@ -91,7 +95,7 @@ void publish_joy_message(uint16_t* channel){
   
   // Convert button channels (1000 = off, 2000 = on)
   joy_msg.buttons[0] = (channel[CHANNEL_ARM] > 1500) ? 1 : 0;           // Arm button
-  joy_msg.buttons[1] = (channel[CHANNEL_FLIP_SWITCH] > 1500) ? 1 : 0;   // Flip switch
+  joy_msg.buttons[1] = (channel[CHANNEL_FLIGHT_MODE] > 1500) ? 1 : 0;   // Flight mode switch
   
   // Set timestamp
   joy_msg.header.stamp = ros::Time::now();
@@ -136,8 +140,7 @@ int main(int argc, char **argv)
     return -1;
   }
 
-  uint8_t buffer[200];  // Buffer for incoming data
-  int buffer_pos = 0;
+  uint8_t data_received[35];
   uint16_t channel[16] = {1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500,1500};
 
   struct timeval tvstart, tvend;
@@ -152,74 +155,26 @@ int main(int argc, char **argv)
     
     // Read all available data into buffer
     if(my_serial.available() > 0){
-      size_t available_bytes = my_serial.available();
-      
-      // If too much data is coming in, clear buffer and start fresh to avoid latency
-      if(available_bytes > 100 || buffer_pos > 150){
-        buffer_pos = 0;  // Clear buffer to get fresh data
-      }
-      
-      size_t bytes_to_read = min(available_bytes, sizeof(buffer) - buffer_pos);
-      
-      if(bytes_to_read > 0){
-        size_t bytes_read = my_serial.read(&buffer[buffer_pos], bytes_to_read);
-        buffer_pos += bytes_read;
-        
-        // Search for the LAST (most recent) valid SBUS message in buffer
-        int last_valid_msg_pos = -1;
-        
-        // Search backwards through buffer to find most recent valid message
-        for(int i = buffer_pos - 35; i >= 0; i--){
-          if(buffer[i] == 0x0F){
-            // Found potential start, try to parse
-            if(parse_channel_data(&buffer[i], channel)){
-              last_valid_msg_pos = i;
-              break;  // Found most recent valid message
-            }
-          }
-        }
-        
-        if(last_valid_msg_pos >= 0){
-          // Successfully found and parsed most recent message
-          publish_joy_message(channel);
-          
-          // Optional: Print channel values for debugging
-          if(count % 100 == 0){  // Print every 100 iterations to avoid spam
-            cout << "Channels: ";
-            for(int j = 0; j < 8; j++){
-              cout << channel[j] << " ";
-            }
-            cout << endl;
-          }
-          
-          // Remove all processed data up to and including this message
-          int remaining_bytes = buffer_pos - (last_valid_msg_pos + 35);
-          if(remaining_bytes > 0){
-            memmove(buffer, &buffer[last_valid_msg_pos + 35], remaining_bytes);
-          }
-          buffer_pos = remaining_bytes;
-        } else {
-          // No valid message found, look for any sync byte to keep
-          int last_sync_pos = -1;
-          for(int i = buffer_pos - 1; i >= 0; i--){
-            if(buffer[i] == 0x0F){
-              last_sync_pos = i;
-              break;
-            }
-          }
-          
-          if(last_sync_pos >= 0 && buffer_pos - last_sync_pos < 35){
-            // Keep partial message starting from last sync byte
-            int remaining_bytes = buffer_pos - last_sync_pos;
-            memmove(buffer, &buffer[last_sync_pos], remaining_bytes);
-            buffer_pos = remaining_bytes;
-          } else {
-            // No useful data, clear buffer
-            buffer_pos = 0;
-          }
-        }
+      // size_t available_bytes = my_serial.available();
+      my_serial.flushInput();
+      usleep(15000);
+      size_t bytes_read = my_serial.read(data_received, 35);
+      if(parse_channel_data(data_received, channel)){
+        // Successfully found and parsed most recent message
+        publish_joy_message(channel);
+        // Optional: Print channel values for debugging
+        // if(count % 10 == 0){  // Print every 100 iterations to avoid spam
+        //   cout << "Channels: ";
+        //   for(int j = 0; j < 8; j++){
+        //     cout << channel[j] << " ";
+        //   }
+        //   cout << endl;
+        // }
+      } else {
+        // ROS_WARN_THROTTLE(1.0, "Failed to parse SBUS data - will resync");
       }
     }
+    // my_serial.flushInput();
         
     ros::spinOnce();
     loop_rate.sleep();
