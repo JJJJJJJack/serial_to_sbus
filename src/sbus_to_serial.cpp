@@ -21,6 +21,7 @@
 #define CHANNEL_FLIP_SWITCH 9
 #define CHANNEL_FLIGHT_MODE 6
 #define CHANNEL_ARM 7
+#define CHANNEL_CONTROL_TYPE 9
 
 using namespace std;
 
@@ -83,7 +84,7 @@ void publish_joy_message(uint16_t* channel){
   sensor_msgs::Joy joy_msg;
   
   // Initialize arrays
-  joy_msg.axes.resize(5);
+  joy_msg.axes.resize(6);
   joy_msg.buttons.resize(2);
   
   // Convert channel values back to joystick format (-1 to 1 for axes, 0 to 1 for buttons)
@@ -92,6 +93,7 @@ void publish_joy_message(uint16_t* channel){
   joy_msg.axes[2] = saturate_float((channel[CHANNEL_YAW] - 1500) / 500.0, -1.0, 1.0);         // Yaw
   joy_msg.axes[3] = saturate_float((channel[CHANNEL_THROTTLE] - 1000) / 1000.0, 0.0, 1.0);    // Throttle
   joy_msg.axes[4] = saturate_float((channel[CHANNEL_BOARD_PITCH_ALIGNMENT] - 1500) / 500.0, -1.0, 1.0); // Board pitch alignment
+  joy_msg.axes[5] = (channel[CHANNEL_CONTROL_TYPE] > 1500) ? 1 : 0;   // Flight mode switch
   
   // Convert button channels (1000 = off, 2000 = on)
   joy_msg.buttons[0] = (channel[CHANNEL_ARM] > 1500) ? 1 : 0;           // Arm button
@@ -115,7 +117,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh("~");
   nh.param<std::string>("USB", USB_Dev, "/dev/ttyUSB0");
   
-  joy_pub = n.advertise<sensor_msgs::Joy>("joy_control", 1);
+  joy_pub = n.advertise<sensor_msgs::Joy>("joy", 1);
 
   serial::Serial my_serial;
   serial::Timeout timeout = serial::Timeout::simpleTimeout(1000);
